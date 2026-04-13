@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx skills:*)",
+      "Bash(npm install:*)",
+      "Bash(curl -L \"https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg\" -o \"C:\\\\Users\\\\velin\\\\OneDrive\\\\Documents\\\\Application\\\\Newsletter\\\\public\\\\textures\\\\earth_day.jpg\" --max-time 60)",
+      "Bash(curl -L \"https://threejs.org/examples/textures/planets/earth_normal_2048.jpg\" -o \"C:\\\\Users\\\\velin\\\\OneDrive\\\\Documents\\\\Application\\\\Newsletter\\\\public\\\\textures\\\\earth_normal.jpg\" --max-time 60)",
+      "Bash(curl -L \"https://threejs.org/examples/textures/planets/earth_specular_2048.jpg\" -o \"C:\\\\Users\\\\velin\\\\OneDrive\\\\Documents\\\\Application\\\\Newsletter\\\\public\\\\textures\\\\earth_specular.jpg\" --max-time 60)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
