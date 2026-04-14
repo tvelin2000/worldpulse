@@ -14,8 +14,8 @@ export async function GET() {
   try {
     // NewsAPI — top headlines from multiple countries
     const res = await fetch(
-      `https://newsapi.org/v2/top-headlines?language=en&pageSize=20&apiKey=${45953cfacc90446dadae433d72e8da23}`,
-      { next: { revalidate: 300 } } // Cache for 5 minutes
+      `https://newsapi.org/v2/top-headlines?language=en&pageSize=20&apiKey=${process.env.NEWSAPI_KEY}`,
+      { next: { revalidate: 300 } } as RequestInit // Cache for 5 minutes
     )
 
     if (!res.ok) throw new Error(`NewsAPI error: ${res.status}`)
