@@ -1,5 +1,5 @@
 // src/app/api/news/route.ts
-// Fetches top headlines from multiple countries and attaches real coordinates.
+// Fetches top headlines from international sources and attaches real coordinates.
 
 import { NextResponse } from 'next/server'
 import type { NewsItem } from '@/types/news'
@@ -7,17 +7,52 @@ import type { NewsItem } from '@/types/news'
 type NewsCategory = 'politics' | 'technology' | 'environment' | 'economy' | 'conflict' | 'science' | 'health'
 type NewsImpact   = 'low' | 'medium' | 'high' | 'critical'
 
-const COUNTRIES = [
-  { code: 'us', lat: 38.89,  lng: -77.04,  country: 'United States',  city: 'Washington D.C.' },
-  { code: 'gb', lat: 51.51,  lng:  -0.13,  country: 'United Kingdom', city: 'London'           },
-  { code: 'fr', lat: 48.85,  lng:   2.35,  country: 'France',         city: 'Paris'            },
-  { code: 'de', lat: 52.52,  lng:  13.40,  country: 'Germany',        city: 'Berlin'           },
-  { code: 'jp', lat: 35.69,  lng: 139.69,  country: 'Japan',          city: 'Tokyo'            },
-  { code: 'au', lat: -33.87, lng: 151.21,  country: 'Australia',      city: 'Sydney'           },
-  { code: 'in', lat: 28.61,  lng:  77.21,  country: 'India',          city: 'New Delhi'        },
-  { code: 'br', lat: -15.79, lng: -47.88,  country: 'Brazil',         city: 'Brasília'         },
-  { code: 'ca', lat: 45.42,  lng: -75.69,  country: 'Canada',         city: 'Ottawa'           },
-  { code: 'za', lat: -25.74, lng:  28.19,  country: 'South Africa',   city: 'Pretoria'         },
+// Map source IDs → geographic coordinates
+const SOURCE_COORDS: Record<string, { lat: number; lng: number; country: string; city: string }> = {
+  // North America
+  'the-washington-post':   { lat: 38.89,  lng: -77.04,  country: 'United States',  city: 'Washington D.C.' },
+  'cnn':                   { lat: 33.75,  lng: -84.39,  country: 'United States',  city: 'Atlanta'         },
+  'the-new-york-times':    { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'associated-press':      { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'abc-news':              { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'nbc-news':              { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'usa-today':             { lat: 38.89,  lng: -77.04,  country: 'United States',  city: 'Washington D.C.' },
+  'cbs-news':              { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'fox-news':              { lat: 40.71,  lng: -74.01,  country: 'United States',  city: 'New York'        },
+  'the-globe-and-mail':    { lat: 43.65,  lng: -79.38,  country: 'Canada',         city: 'Toronto'         },
+  // Europe
+  'bbc-news':              { lat: 51.50,  lng:  -0.12,  country: 'United Kingdom', city: 'London'          },
+  'the-guardian-uk':       { lat: 51.50,  lng:  -0.12,  country: 'United Kingdom', city: 'London'          },
+  'independent':           { lat: 51.50,  lng:  -0.12,  country: 'United Kingdom', city: 'London'          },
+  'reuters':               { lat: 51.50,  lng:  -0.12,  country: 'United Kingdom', city: 'London'          },
+  'le-monde':              { lat: 48.85,  lng:   2.35,  country: 'France',         city: 'Paris'           },
+  'france-24':             { lat: 48.85,  lng:   2.35,  country: 'France',         city: 'Paris'           },
+  'der-spiegel':           { lat: 53.55,  lng:  10.00,  country: 'Germany',        city: 'Hamburg'         },
+  'el-mundo':              { lat: 40.42,  lng:  -3.70,  country: 'Spain',          city: 'Madrid'          },
+  'ansa':                  { lat: 41.90,  lng:  12.49,  country: 'Italy',          city: 'Rome'            },
+  // Middle East & Africa
+  'al-jazeera-english':    { lat: 25.29,  lng:  51.53,  country: 'Qatar',          city: 'Doha'            },
+  'haaretz':               { lat: 32.08,  lng:  34.78,  country: 'Israel',         city: 'Tel Aviv'        },
+  // Asia & Pacific
+  'google-news-in':        { lat: 28.61,  lng:  77.21,  country: 'India',          city: 'New Delhi'       },
+  'the-times-of-india':    { lat: 19.08,  lng:  72.88,  country: 'India',          city: 'Mumbai'          },
+  'australian-financial-review': { lat: -33.87, lng: 151.21, country: 'Australia', city: 'Sydney'          },
+  // Latin America
+  'infobae':               { lat: -34.60, lng: -58.38,  country: 'Argentina',      city: 'Buenos Aires'    },
+}
+
+// Fallback coords when source is unknown — spread around the globe
+const FALLBACK_COORDS = [
+  { lat: 35.69,  lng: 139.69, country: 'Japan',        city: 'Tokyo'      },
+  { lat: -33.87, lng: 151.21, country: 'Australia',    city: 'Sydney'     },
+  { lat: -15.79, lng: -47.88, country: 'Brazil',       city: 'Brasília'   },
+  { lat: -25.74, lng:  28.19, country: 'South Africa', city: 'Pretoria'   },
+  { lat: 55.75,  lng:  37.62, country: 'Russia',       city: 'Moscow'     },
+  { lat: 39.91,  lng: 116.39, country: 'China',        city: 'Beijing'    },
+  { lat: 37.57,  lng: 126.98, country: 'South Korea',  city: 'Seoul'      },
+  { lat: -1.29,  lng:  36.82, country: 'Kenya',        city: 'Nairobi'    },
+  { lat: 30.04,  lng:  31.24, country: 'Egypt',        city: 'Cairo'      },
+  { lat: 19.43,  lng: -99.13, country: 'Mexico',       city: 'Mexico City'},
 ]
 
 function classifyCategory(title: string, description: string): NewsCategory {
@@ -39,6 +74,8 @@ function classifyImpact(title: string, description: string): NewsImpact {
   return 'low'
 }
 
+const jitter = () => (Math.random() - 0.5) * 5
+
 export async function GET() {
   const apiKey = process.env.NEWSAPI_KEY
   if (!apiKey) {
@@ -46,43 +83,44 @@ export async function GET() {
   }
 
   try {
-    // Fetch top headlines from each country in parallel
-    const results = await Promise.allSettled(
-      COUNTRIES.map(({ code }) =>
-        fetch(
-          `https://newsapi.org/v2/top-headlines?country=${code}&pageSize=3&apiKey=${apiKey}`,
-          { next: { revalidate: 300 } } as RequestInit
-        ).then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      )
+    const res = await fetch(
+      `https://newsapi.org/v2/top-headlines?language=en&pageSize=100&apiKey=${apiKey}`,
+      { next: { revalidate: 300 } } as RequestInit
     )
+    if (!res.ok) throw new Error(`NewsAPI error: ${res.status}`)
+    const data = await res.json()
 
-    let id = 1
+    let fallbackIndex = 0
     const items: NewsItem[] = []
 
-    results.forEach((result, index) => {
-      if (result.status !== 'fulfilled') return
-      const { country, city, lat, lng } = COUNTRIES[index]
+    for (const [i, article] of (data.articles ?? []).entries()) {
+      if (!article.title || article.title === '[Removed]') continue
 
-      for (const article of (result.value.articles ?? [])) {
-        if (!article.title || article.title === '[Removed]') continue
+      const sourceId = article.source?.id ?? ''
+      let coords = SOURCE_COORDS[sourceId]
 
-        items.push({
-          id:          String(id++),
-          title:       article.title,
-          summary:     article.description ?? article.title,
-          category:    classifyCategory(article.title, article.description ?? ''),
-          impact:      classifyImpact(article.title, article.description ?? ''),
-          source:      article.source?.name ?? 'Unknown',
-          sourceUrl:   article.url,
-          publishedAt: article.publishedAt,
-          lat,
-          lng,
-          country,
-          city,
-          imageUrl:    article.urlToImage ?? undefined,
-        })
+      // If source unknown, assign a fallback location from around the globe
+      if (!coords) {
+        coords = FALLBACK_COORDS[fallbackIndex % FALLBACK_COORDS.length]
+        fallbackIndex++
       }
-    })
+
+      items.push({
+        id:          String(i + 1),
+        title:       article.title,
+        summary:     article.description ?? article.title,
+        category:    classifyCategory(article.title, article.description ?? ''),
+        impact:      classifyImpact(article.title, article.description ?? ''),
+        source:      article.source?.name ?? 'Unknown',
+        sourceUrl:   article.url,
+        publishedAt: article.publishedAt,
+        lat:         coords.lat + jitter(),
+        lng:         coords.lng + jitter(),
+        country:     coords.country,
+        city:        coords.city,
+        imageUrl:    article.urlToImage ?? undefined,
+      })
+    }
 
     return NextResponse.json(items)
   } catch (err) {
