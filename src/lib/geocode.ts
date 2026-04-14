@@ -18,7 +18,7 @@ export async function geocode(
   }
 
   try {
-    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(placeName)}&key=${bc4c61cd6dd44908be8bef0df78967e1}&limit=1`
+    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(placeName)}&key=${key}&limit=1`
     const res = await fetch(url)
     const data = await res.json()
 
